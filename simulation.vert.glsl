@@ -9,15 +9,17 @@ uniform sampler2D flock;
 // total size of flock
 uniform float agentCount;
 
+uniform vec2 resolution;
+
 // newly calculated position / velocity of agent
 out vec4 agent_out;
 
 vec2 cohesion = vec2(0., 0.);
 vec2 separation = vec2(0., 0.);
-vec2 flockVel = vec2(0., 0.);
+vec2 align = vec2(0., 0.);
 
 vec2 acceleration = vec2(0., 0.);
-float maxSpeed = .001;
+float maxSpeed = .08;
 
 void main() {
   // the position of this vertex needs to be reported
@@ -41,33 +43,68 @@ void main() {
     // texture lookup.
     vec4 agent  = texelFetch( flock, ivec2(i,0), 0 );
 
-    if (distance(agent_out.xy, agent.xy) < .09) {
-      cohesion += agent.xy;
+    float dist = distance(agent_out.xy, agent.xy);
+    if (dist > .1) continue;
+
+    if (dist < 0.2) {
+      cohesion.x += agent.x;
+      cohesion.y += agent.y;
     }
 
-    if (distance(agent_out.xy, agent.xy) < 0.01) {
-      separation += (agent_out.xy - agent.xy) / distance(agent_out.xy, agent.xy);
+    if (dist < .03) {
+      vec2 diff = (agent_out.xy - agent.xy);
+      //diff.x = diff.x/dist;
+      //diff.y = diff.y/dist;
+
+      separation.x += diff.x;
+      separation.y += diff.y;
+    }
+
+    if (dist < .01) {
+      align += agent.zw;
     }
 
   }
 
-  cohesion = cohesion / (agentCount - 1.);
-  //cohesion = normalize(cohesion);
-  //cohesion = cohesion * maxSpeed;
-  cohesion = cohesion * -1.;
-  cohesion -= agent_out.zw;
+  cohesion /= (agentCount - 1.);
+  cohesion.x -= agent_out.z;
+  cohesion.y -= agent_out.w;
+  cohesion *= -1.;
+
+  separation /= (agentCount - 1.);
+  separation.x -= agent_out.z;
+  separation.y -= agent_out.w;
+
+  align /= agentCount;
+  align -= agent_out.zw;
+  //align *= 1.;
+
+  //acceleration.x += cohesion.x + separation.x + align.x;
+  //acceleration.y += cohesion.y + separation.y + align.y;
+
+  acceleration += cohesion + separation + align;
+
+  agent_out.x = agent_out.x + agent_out.z;
+  agent_out.y = agent_out.y + agent_out.w;
+  agent_out.z += acceleration.x;
+  agent_out.w += acceleration.y;
+
+  if (length(agent_out.zw) > maxSpeed) {
+    agent_out.zw = normalize(agent_out.zw);
+    agent_out.zw = agent_out.zw * maxSpeed;
+  }
+
+  vec2 st = agent_out.xy / resolution;
+  if (st.x > 1.) agent_out.x = 0.;
+  if (st.x < -1.) agent_out.x = 1.;
+  if (st.y > 1.) agent_out.y = 0.;
+  if (st.y < -1.) agent_out.y = 1.;
 
 
-  separation = separation / (agentCount);
-  separation = separation * -1.;
-  separation -= agent_out.zw;
-
-
-  acceleration += cohesion;
-  agent_out.xy += agent_out.zw;
-  agent_out.zw += acceleration;
-
-
+  if (length(agent_out.zw) > maxSpeed) {
+    agent_out.zw = normalize(agent_out.zw);
+    agent_out.zw = agent_out.zw * maxSpeed;
+  }
 
 
   // each agent is one pixel. remember, this shader is not used for
