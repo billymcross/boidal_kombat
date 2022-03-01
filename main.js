@@ -9,7 +9,9 @@ let gl,
     framebuffer,
     simulationProgram, simulationPosition,
     renderProgram,
-    buffers
+    buffers,
+    mouseX,
+    mouseY
 
 const textures = [],
     agentCount = 12000
@@ -99,9 +101,9 @@ function makeSimulationBuffer() {
   const __agents = []
   for( let i = 0; i <= agentCount * 4; i+=4 ) {
     __agents[i] = -1 + Math.random() * 2
-    __agents[i+1] = -1 + Math.random() * 2
-    __agents[i + 2] = -1 + Math.random() * 2
-    __agents[i + 3] = -1 + Math.random() * 2
+    __agents[i+1] =  -1 +Math.random() * 2
+    __agents[i+2] = 0
+    __agents[i+3] = 0
     // use i+2 and i+3 to set initial velocities, default to 0
   }
   const agents = new Float32Array( __agents )
@@ -121,9 +123,8 @@ function makeSimulationUniforms() {
   // number of agents in our flock
   const count  = gl.getUniformLocation( simulationProgram, 'agentCount' )
   gl.uniform1f( count, agentCount )
-
-  const resolution = gl.getUniformLocation(simulationProgram, 'resolution')
-  gl.uniform2f(resolution, window.innerWidth, window.innerHeight)
+  
+  
 }
 
 function makeRenderPhase() {
