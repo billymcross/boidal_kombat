@@ -12,6 +12,13 @@ uniform float agentCount;
 // newly calculated position / velocity of agent
 out vec4 agent_out;
 
+vec2 cohesion = vec2(0., 0.);
+vec2 separation = vec2(0., 0.);
+vec2 flockVel = vec2(0., 0.);
+
+vec2 acceleration = vec2(0., 0.);
+float maxSpeed = .001;
+
 void main() {
   // the position of this vertex needs to be reported
   // in the range {-1,1}. We can use the gl_VertexID
@@ -34,10 +41,34 @@ void main() {
     // texture lookup.
     vec4 agent  = texelFetch( flock, ivec2(i,0), 0 );
 
-    // move our agent a small amount towards the ith agent
-    // in the flock.
-    if (distance(agent_out.xy, agent.xy) < .3) agent_out.xy += ( agent_out.xy - agent.xy) * -.1 / agentCount;
+    if (distance(agent_out.xy, agent.xy) < .09) {
+      cohesion += agent.xy;
+    }
+
+    if (distance(agent_out.xy, agent.xy) < 0.01) {
+      separation += (agent_out.xy - agent.xy) / distance(agent_out.xy, agent.xy);
+    }
+
   }
+
+  cohesion = cohesion / (agentCount - 1.);
+  //cohesion = normalize(cohesion);
+  //cohesion = cohesion * maxSpeed;
+  cohesion = cohesion * -1.;
+  cohesion -= agent_out.zw;
+
+
+  separation = separation / (agentCount);
+  separation = separation * -1.;
+  separation -= agent_out.zw;
+
+
+  acceleration += cohesion;
+  agent_out.xy += agent_out.zw;
+  agent_out.zw += acceleration;
+
+
+
 
   // each agent is one pixel. remember, this shader is not used for
   // rendering to the screen, only to our 1D texture array.

@@ -12,7 +12,7 @@ let gl,
     buffers
 
 const textures = [],
-    agentCount = 8192
+    agentCount = 8000
 
 window.onload = function() {
   const canvas = document.getElementById( 'gl' )
@@ -100,6 +100,8 @@ function makeSimulationBuffer() {
   for( let i = 0; i <= agentCount * 4; i+=4 ) {
     __agents[i] = -1 + Math.random() * 2
     __agents[i+1] = -1 + Math.random() * 2
+    __agents[i + 2] = 0;
+    __agents[i + 3] = 0;
     // use i+2 and i+3 to set initial velocities, default to 0
   }
   const agents = new Float32Array( __agents )
