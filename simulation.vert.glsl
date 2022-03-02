@@ -48,17 +48,17 @@ void main() {
     float dist = distance(agent_out.xy, agent.xy);
     //if (dist > .1) continue;
 
-    if (dist < 0.4) {
+    if (dist < 0.1) {
       cohesion += agent.xy;
     }
 
-    if (dist < .4) {
+    if (dist < 0.2) {
       vec2 diff = (agent_out.xy - agent.xy);
 
       separation += diff;
     }
 
-    if (dist < .3) {
+    if (dist < 0.1) {
       align += agent.zw;
     }
 
@@ -71,7 +71,6 @@ void main() {
   separation = separation / (agentCount - 1.);
   separation -= agent_out.zw;
 
-  //align = align / (agentCount - 1.);
   align -= agent_out.zw;
 
   acceleration += cohesion + separation + align;

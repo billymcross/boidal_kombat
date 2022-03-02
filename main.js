@@ -14,7 +14,7 @@ let gl,
     mouseY
 
 const textures = [],
-    agentCount = 12000
+    agentCount = 16000
 
 window.onload = function() {
   const canvas = document.getElementById( 'gl' )
@@ -102,8 +102,8 @@ function makeSimulationBuffer() {
   for( let i = 0; i <= agentCount * 4; i+=4 ) {
     __agents[i] = -1 + Math.random() * 2
     __agents[i+1] =  -1 +Math.random() * 2
-    __agents[i+2] = 0
-    __agents[i+3] = 0
+    __agents[i+2] = -2 + Math.random() * 10
+    __agents[i+3] = -2 + Math.random() * 10
     // use i+2 and i+3 to set initial velocities, default to 0
   }
   const agents = new Float32Array( __agents )
@@ -129,6 +129,8 @@ function makeSimulationUniforms() {
 
 function makeRenderPhase() {
   renderProgram  = makeProgram( render_vert, render_frag )
+  const resolution = gl.getUniformLocation(renderProgram, 'resolution')
+  gl.uniform2f(resolution, window.innerWidth, window.innerHeight)
   const renderPosition = gl.getAttribLocation( renderProgram, 'agent' )
   gl.enableVertexAttribArray( renderPosition )
   gl.vertexAttribPointer( renderPosition, 4, gl.FLOAT, false, 0,0 )
