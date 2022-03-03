@@ -3,10 +3,12 @@
 precision mediump float;
 #endif
 
-uniform vec2 resolution;
+in vec4 agent_out;
+
+uniform float time;
 
 out vec4 color;
 void main() {
-  vec2 st = gl_FragCoord.xy/resolution;
-  color = vec4( 1., 0. , 1., 1. );
+
+  color = vec4( abs(agent_out.z / 0.01), 0. , abs(agent_out.w / 0.01), 1. );
 }

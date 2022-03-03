@@ -11,6 +11,8 @@ uniform float agentCount;
 
 uniform vec2 resolution;
 
+uniform vec2 mouse;
+
 
 // newly calculated position / velocity of agent
 out vec4 agent_out;
@@ -21,7 +23,6 @@ vec2 align = vec2(0., 0.);
 
 vec2 acceleration = vec2(0., 0.);
 float maxSpeed = .01;
-float maxForce = .01;
 
 void main() {
   // the position of this vertex needs to be reported
@@ -48,17 +49,17 @@ void main() {
     float dist = distance(agent_out.xy, agent.xy);
     //if (dist > .1) continue;
 
-    if (dist < 0.1) {
+    if (dist < 0.2) {
       cohesion += agent.xy;
     }
 
-    if (dist < 0.2) {
+    if (dist < 0.5) {
       vec2 diff = (agent_out.xy - agent.xy);
 
       separation += diff;
     }
 
-    if (dist < 0.1) {
+    if (dist < 0.05) {
       align += agent.zw;
     }
 

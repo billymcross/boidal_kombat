@@ -11,16 +11,42 @@ let gl,
     renderProgram,
     buffers,
     mouseX,
-    mouseY
+    mouseY,
+    uMouse,
+    uTime
 
 const textures = [],
-    agentCount = 16000
+    agentCount = 16384
 
 window.onload = function() {
   const canvas = document.getElementById( 'gl' )
   gl = canvas.getContext( 'webgl2' )
   canvas.width  = window.innerWidth
   canvas.height = window.innerHeight
+  
+  window.onmousemove = function(event) {
+    mouseX = event.x / canvas.width;
+    mouseY = event.y / canvas.height;
+  }
+
+  // audio init
+  const audioCtx = new AudioContext()
+  const audioElement = document.createElement( 'audio' )
+  audioElement.setAttribute("crossOrigin", "anonymous")
+  document.body.appendChild( audioElement )
+
+  // audio graph setup
+  const analyser = audioCtx.createAnalyser()
+  analyser.fftSize = 1024 // 512 bins
+  const player = audioCtx.createMediaElementSource( audioElement )
+  player.connect( audioCtx.destination )
+  player.connect( analyser )
+
+  window.onkeydown  = function(event) {
+    audioElement.src = './Savant - ISM - 04 Ghetto Blastah.mp3'
+    audioElement.play()
+  }
+
 
   makeSimulationPhase()
   makeRenderPhase()
@@ -124,13 +150,16 @@ function makeSimulationUniforms() {
   const count  = gl.getUniformLocation( simulationProgram, 'agentCount' )
   gl.uniform1f( count, agentCount )
   
+  //Mouse position
+  uMouse = gl.getUniformLocation(simulationProgram, 'mouse')
+  gl.uniform2f(uMouse, 0, 0)
+  
   
 }
 
 function makeRenderPhase() {
-  renderProgram  = makeProgram( render_vert, render_frag )
-  const resolution = gl.getUniformLocation(renderProgram, 'resolution')
-  gl.uniform2f(resolution, window.innerWidth, window.innerHeight)
+  renderProgram  = makeProgram( render_vert, render_frag, )
+  uTime = gl.getUniformLocation(renderProgram, 'time')
   const renderPosition = gl.getAttribLocation( renderProgram, 'agent' )
   gl.enableVertexAttribArray( renderPosition )
   gl.vertexAttribPointer( renderPosition, 4, gl.FLOAT, false, 0,0 )
@@ -154,17 +183,21 @@ function makeTextures() {
 
   textures[1] = gl.createTexture()
   gl.bindTexture( gl.TEXTURE_2D, textures[1] )
+  gl.getExtension('EXT_color_buffer_float');
   gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE )
   gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE )
   gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
   gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST )
   gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA32F, agentCount, 1, 0, gl.RGBA, gl.FLOAT, null )
 }
-
+let time = 0;
 function render() {
+  time++;
   window.requestAnimationFrame( render )
 
   gl.useProgram( simulationProgram )
+
+  gl.uniform2f(uMouse, mouseX, mouseY)
 
   gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer )
 
@@ -198,6 +231,7 @@ function render() {
   gl.viewport( 0,0, gl.drawingBufferWidth, gl.drawingBufferHeight )
 
   gl.useProgram( renderProgram )
+  gl.uniform1f(uTime, time);
   gl.bindBuffer( gl.ARRAY_BUFFER, buffers[0] )
   gl.drawArrays( gl.POINTS, 0, agentCount )
 
