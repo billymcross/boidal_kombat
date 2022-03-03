@@ -10,13 +10,30 @@ let gl,
     simulationProgram, simulationPosition,
     renderProgram,
     buffers,
-    mouseX,
-    mouseY,
+    mouseX = 0.,
+    mouseY = 0.,
     uMouse,
-    uTime
+    uTime,
+    uCohesion,
+    uSeparation,
+    uAlign,
+    uCohesionScale,
+    uSeparationScale,
+    uAlignScale
+    uDiffuse
 
 const textures = [],
     agentCount = 16384
+
+const PARAMS = {
+  cohesionDist: 0.3,
+  separationDist: 0.1,
+  alignDist: 0.1,
+  cohesionScale: 1.,
+  separationScale: 1.,
+  alignScale: 1.,
+  diffuseBoids: false
+};
 
 window.onload = function() {
   const canvas = document.getElementById( 'gl' )
@@ -25,28 +42,57 @@ window.onload = function() {
   canvas.height = window.innerHeight
   
   window.onmousemove = function(event) {
-    mouseX = event.x / canvas.width;
-    mouseY = event.y / canvas.height;
+    mouseX = -1. + (event.x / canvas.width) * 2.;
+    mouseY = -1. + (event.y / canvas.height) * 2.;
+    mouseY *= -1.;
   }
 
-  // audio init
-  const audioCtx = new AudioContext()
-  const audioElement = document.createElement( 'audio' )
-  audioElement.setAttribute("crossOrigin", "anonymous")
-  document.body.appendChild( audioElement )
-
-  // audio graph setup
-  const analyser = audioCtx.createAnalyser()
-  analyser.fftSize = 1024 // 512 bins
-  const player = audioCtx.createMediaElementSource( audioElement )
-  player.connect( audioCtx.destination )
-  player.connect( analyser )
-
   window.onkeydown  = function(event) {
+    // audio init
+    const audioCtx = new AudioContext()
+    const audioElement = document.createElement( 'audio' )
+
+    document.body.appendChild( audioElement )
+
+    // audio graph setup
+    const analyser = audioCtx.createAnalyser()
+    analyser.fftSize = 1024 // 512 bins
+    const player = audioCtx.createMediaElementSource( audioElement )
+    player.connect( audioCtx.destination )
+    player.connect( analyser )
     audioElement.src = './Savant - ISM - 04 Ghetto Blastah.mp3'
     audioElement.play()
   }
 
+  const pane = new Tweakpane.Pane();
+  pane.addInput(PARAMS, 'cohesionDist', {
+    min: 0.,
+    max: 0.5
+  });
+  pane.addInput(PARAMS, 'separationDist', {
+    min: 0.,
+    max: 0.5
+  });
+  pane.addInput(PARAMS, 'alignDist', {
+    min: 0.02,
+    max: 0.5
+  });
+  pane.addInput(PARAMS, 'cohesionScale', {
+    min: 1.,
+    max: 30.
+  });
+  pane.addInput(PARAMS, 'separationScale', {
+    min: 1.,
+    max: 30.
+  });
+  pane.addInput(PARAMS, 'alignScale', {
+    min: 1.,
+    max: 30.
+  });
+  pane.addInput(PARAMS, 'diffuseBoids', {
+    min: false,
+    max: true
+  })
 
   makeSimulationPhase()
   makeRenderPhase()
@@ -153,6 +199,24 @@ function makeSimulationUniforms() {
   //Mouse position
   uMouse = gl.getUniformLocation(simulationProgram, 'mouse')
   gl.uniform2f(uMouse, 0, 0)
+
+  //Parameters
+  uCohesion = gl.getUniformLocation(simulationProgram, 'cohesionDist')
+  gl.uniform1f(uCohesion, PARAMS.cohesionDist)
+  uSeparation = gl.getUniformLocation(simulationProgram, 'separationDist')
+  gl.uniform1f(uSeparation, PARAMS.separationDist)
+  uAlign = gl.getUniformLocation(simulationProgram, 'alignDist')
+  gl.uniform1f(uAlign, PARAMS.alignDist)
+
+  uCohesionScale = gl.getUniformLocation(simulationProgram, 'cohesionScale')
+  gl.uniform1f(uCohesionScale, PARAMS.cohesionScale)
+  uSeparationScale = gl.getUniformLocation(simulationProgram, 'separationScale')
+  gl.uniform1f(uSeparationScale, PARAMS.separationScale)
+  uAlignScale = gl.getUniformLocation(simulationProgram, 'alignScale')
+  gl.uniform1f(uAlignScale, PARAMS.alignScale)
+
+  uDiffuse = gl.getUniformLocation(simulationProgram, 'diffuseBoids')
+  gl.uniform1i(uDiffuse, PARAMS.diffuseBoids)
   
   
 }
@@ -197,7 +261,19 @@ function render() {
 
   gl.useProgram( simulationProgram )
 
+  //Put in mouse uniform
   gl.uniform2f(uMouse, mouseX, mouseY)
+
+  //Pass in parameter uniforms
+  gl.uniform1f(uCohesion, PARAMS.cohesionDist)
+  gl.uniform1f(uSeparation, PARAMS.separationDist)
+  gl.uniform1f(uAlign, PARAMS.alignDist)
+
+  gl.uniform1f(uCohesionScale, PARAMS.cohesionScale)
+  gl.uniform1f(uSeparationScale, PARAMS.separationScale)
+  gl.uniform1f(uAlignScale, PARAMS.alignScale)
+
+  gl.uniform1i(uDiffuse, PARAMS.diffuseBoids)
 
   gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer )
 

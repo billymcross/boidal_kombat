@@ -8,11 +8,23 @@ in vec4 agent_in;
 uniform sampler2D flock;
 // total size of flock
 uniform float agentCount;
-
+//resolution
 uniform vec2 resolution;
-
+//mouse coords
 uniform vec2 mouse;
 
+//thresholds, passed from params
+uniform float cohesionDist;
+uniform float separationDist;
+uniform float alignDist;
+
+//scales for different forces
+uniform float cohesionScale;
+uniform float separationScale;
+uniform float alignScale;
+
+//boolean to diffuse boids
+uniform bool diffuseBoids;
 
 // newly calculated position / velocity of agent
 out vec4 agent_out;
@@ -23,6 +35,11 @@ vec2 align = vec2(0., 0.);
 
 vec2 acceleration = vec2(0., 0.);
 float maxSpeed = .01;
+float maxForce = .002;
+
+float random(vec2 coeff) {
+  return fract(sin(dot(coeff, vec2(12.9898, 78.233))) * 43758.5453);
+}
 
 void main() {
   // the position of this vertex needs to be reported
@@ -36,48 +53,64 @@ void main() {
   // agent_out is also the target of our transform feedback.
   agent_out = agent_in;
 
-  // loop through all agents...
-  for( int i = 0; i < int( agentCount ); i++ ) {
-    // make sure the index isn't the index of our current agent
-    if( i == gl_VertexID ) continue;
+  if (!diffuseBoids) {
+    // loop through all agents...
+    for( int i = 0; i < int( agentCount ); i++ ) {
+      // make sure the index isn't the index of our current agent
+      if( i == gl_VertexID ) continue;
 
-    // get our agent for comparison. texelFetch accepts an integer
-    // vector measured in pixels to determine the location of the
-    // texture lookup.
-    vec4 agent  = texelFetch( flock, ivec2(i,0), 0 );
+      // get our agent for comparison. texelFetch accepts an integer
+      // vector measured in pixels to determine the location of the
+      // texture lookup.
+      vec4 agent  = texelFetch( flock, ivec2(i,0), 0 );
 
-    float dist = distance(agent_out.xy, agent.xy);
-    //if (dist > .1) continue;
+      float dist = distance(agent_out.xy, agent.xy);
 
-    if (dist < 0.2) {
-      cohesion += agent.xy;
+      if (dist < cohesionDist) {
+        cohesion += agent.xy;
+      }
+
+      if (dist < separationDist) {
+        vec2 diff = (agent_out.xy - agent.xy);
+
+        separation += diff;
+      }
+
+      if (dist < alignDist) {
+        align += agent.zw;
+      }
     }
 
-    if (dist < 0.5) {
-      vec2 diff = (agent_out.xy - agent.xy);
-
-      separation += diff;
+    cohesion = cohesion;
+    cohesion -= agent_out.zw;
+    if (length(cohesion) > maxForce) {
+      cohesion = normalize(cohesion) * maxForce;
     }
+    cohesion *= -1.;
+    cohesion *= cohesionScale;
 
-    if (dist < 0.05) {
-      align += agent.zw;
+    separation = separation;
+    separation -= agent_out.zw;
+    if (length(separation) > maxForce) {
+      separation = normalize(separation) * maxForce;
     }
+    separation *= separationScale;
 
+    align -= agent_out.zw;
+    if (length(align) > maxForce) {
+      align = normalize(align) * maxForce;
+    }
+    align *= alignScale;
+
+    acceleration += cohesion + separation + align;
+    agent_out.zw += acceleration;
   }
 
-  cohesion = cohesion / (agentCount - 1.);
-  cohesion -= agent_out.zw;
-  cohesion *= -1.;
+  else {
+    agent_out.x = (-1. + (random(agent_out.xy)*2.));
+    agent_out.y = (-1. + (random(agent_out.xy)*2.));
 
-  separation = separation / (agentCount - 1.);
-  separation -= agent_out.zw;
-
-  align -= agent_out.zw;
-
-  acceleration += cohesion + separation + align;
-
-  agent_out.z += acceleration.x;
-  agent_out.w += acceleration.y;
+  }
 
   if (length(agent_out.zw) > maxSpeed) {
     agent_out.zw = normalize(agent_out.zw);
@@ -87,12 +120,10 @@ void main() {
   agent_out.x = agent_out.x + agent_out.z;
   agent_out.y = agent_out.y + agent_out.w;
 
-
   if (agent_out.x > 1.) agent_out.x = -1.;
   if (agent_out.x < -1.) agent_out.x = 1.;
   if (agent_out.y > 1.) agent_out.y = -1.;
   if (agent_out.y < -1.) agent_out.y = 1.;
-
 
   // each agent is one pixel. remember, this shader is not used for
   // rendering to the screen, only to our 1D texture array.
