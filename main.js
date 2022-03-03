@@ -19,21 +19,33 @@ let gl,
     uAlign,
     uCohesionScale,
     uSeparationScale,
-    uAlignScale
-    uDiffuse
+    uAlignScale,
+    uDiffuse,
+    uAudio,
+    uAudioRender,
+    audioCtx,
+    analyser,
+    ctxReady
 
 const textures = [],
     agentCount = 16384
 
+
 const PARAMS = {
   cohesionDist: 0.4,
-  separationDist: 0.3,
-  alignDist: 0.4,
+  separationDist: 0.2,
+  alignDist: 0.02,
   cohesionScale: 1.,
   separationScale: 1.,
   alignScale: 1.,
   diffuseBoids: false
 };
+
+const AUDIO = {
+  cohesionAudio: 0.,
+  separationAudio: 0.,
+  alignAudio: 0.
+}
 
 window.onload = function() {
   const canvas = document.getElementById( 'gl' )
@@ -47,51 +59,83 @@ window.onload = function() {
     mouseY *= -1.;
   }
 
-  window.onkeydown  = function(event) {
-    // audio init
-    const audioCtx = new AudioContext()
-    const audioElement = document.createElement( 'audio' )
+  ctxReady = false;
 
-    document.body.appendChild( audioElement )
+  window.onkeydown = function () {
+    if (!ctxReady) {
+      // audio init
+      audioCtx = new AudioContext();
+      const audioElement = document.getElementById('audioElement')
+      const player = audioCtx.createMediaElementSource(audioElement)
+      player.connect(audioCtx.destination)
 
-    // audio graph setup
-    const analyser = audioCtx.createAnalyser()
-    analyser.fftSize = 1024 // 512 bins
-    const player = audioCtx.createMediaElementSource( audioElement )
-    player.connect( audioCtx.destination )
-    player.connect( analyser )
-    audioElement.src = './Savant - ISM - 04 Ghetto Blastah.mp3'
+      // audio graph setup
+      analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 1024 // 512 bins
+      player.connect(analyser)
+      ctxReady = true;
+    }
+  }
+
+  var updateButton = document.getElementById('updateButton')
+  updateButton.onclick = function () {
+    var audioElement = document.getElementById('audioElement')
+    var source = document.getElementById('audioSource')
+    source.setAttribute('src', "./Savant - ISM - 03 Nightmare Adventures.mp3")
+    audioElement.load()
     audioElement.play()
   }
 
+
   const pane = new Tweakpane.Pane();
-  pane.addInput(PARAMS, 'cohesionDist', {
+
+  const tab = pane.addTab( {
+    pages: [
+      {title: 'Behavior'},
+      {title: 'Audio'}
+    ]
+  })
+
+  tab.pages[0].addInput(PARAMS, 'cohesionDist', {
     min: 0.,
     max: 0.5
   });
-  pane.addInput(PARAMS, 'separationDist', {
+  tab.pages[0].addInput(PARAMS, 'separationDist', {
     min: 0.,
     max: 0.5
   });
-  pane.addInput(PARAMS, 'alignDist', {
+  tab.pages[0].addInput(PARAMS, 'alignDist', {
     min: 0.02,
     max: 0.5
   });
-  pane.addInput(PARAMS, 'cohesionScale', {
+  tab.pages[0].addInput(PARAMS, 'cohesionScale', {
     min: 1.,
     max: 30.
   });
-  pane.addInput(PARAMS, 'separationScale', {
+  tab.pages[0].addInput(PARAMS, 'separationScale', {
     min: 1.,
     max: 30.
   });
-  pane.addInput(PARAMS, 'alignScale', {
+  tab.pages[0].addInput(PARAMS, 'alignScale', {
     min: 1.,
     max: 30.
   });
-  pane.addInput(PARAMS, 'diffuseBoids', {
+  tab.pages[0].addInput(PARAMS, 'diffuseBoids', {
     min: false,
     max: true
+  })
+
+  tab.pages[1].addInput(AUDIO, 'cohesionAudio', {
+    min: 0.,
+    max: 1.
+  })
+  tab.pages[1].addInput(AUDIO, 'separationAudio', {
+    min: 0.,
+    max: 1.
+  })
+  tab.pages[1].addInput(AUDIO, 'alignAudio', {
+    min: 0.,
+    max: 1.
   })
 
   makeSimulationPhase()
@@ -217,7 +261,8 @@ function makeSimulationUniforms() {
 
   uDiffuse = gl.getUniformLocation(simulationProgram, 'diffuseBoids')
   gl.uniform1i(uDiffuse, PARAMS.diffuseBoids)
-  
+
+  uAudio = gl.getUniformLocation(simulationProgram, 'audio')
   
 }
 
@@ -227,6 +272,8 @@ function makeRenderPhase() {
   const renderPosition = gl.getAttribLocation( renderProgram, 'agent' )
   gl.enableVertexAttribArray( renderPosition )
   gl.vertexAttribPointer( renderPosition, 4, gl.FLOAT, false, 0,0 )
+
+  uAudioRender = gl.getUniformLocation(renderProgram, 'audio')
 
   gl.useProgram( renderProgram )
   //gl.enable(gl.BLEND)
@@ -255,7 +302,12 @@ function makeTextures() {
   gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA32F, agentCount, 1, 0, gl.RGBA, gl.FLOAT, null )
 }
 let time = 0;
+let audioDir = 1;
+let audioSwap = 0;
 function render() {
+  var source = document.getElementById('audioSource')
+
+
   time++;
   window.requestAnimationFrame( render )
 
@@ -270,10 +322,23 @@ function render() {
   gl.uniform1f(uAlign, PARAMS.alignDist)
 
   gl.uniform1f(uCohesionScale, PARAMS.cohesionScale)
-  gl.uniform1f(uSeparationScale, PARAMS.separationScale)
   gl.uniform1f(uAlignScale, PARAMS.alignScale)
+  gl.uniform1f(uSeparationScale, PARAMS.separationScale)
+
+  //Put in audio uniform
+  if (ctxReady) {
+    var freqArray = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(freqArray);
+    console.log(freqArray[0])
+    audioValue = parseFloat(freqArray[0] - 100.)
+    if(audioValue >= 0) {
+      gl.uniform1f(uAudio, audioValue)
+    }
+    else gl.uniform1f(uAudio, 0.)
+  }
 
   gl.uniform1i(uDiffuse, PARAMS.diffuseBoids)
+
 
   gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer )
 

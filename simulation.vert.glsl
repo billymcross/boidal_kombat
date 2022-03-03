@@ -26,6 +26,8 @@ uniform float alignScale;
 //boolean to diffuse boids
 uniform bool diffuseBoids;
 
+uniform float audio;
+
 // newly calculated position / velocity of agent
 out vec4 agent_out;
 
@@ -34,8 +36,8 @@ vec2 separation = vec2(0., 0.);
 vec2 align = vec2(0., 0.);
 
 vec2 acceleration = vec2(0., 0.);
-float maxSpeed = .01;
-float maxForce = .002;
+float maxSpeed = .03;
+float maxForce = .001;
 
 float random(vec2 coeff) {
   return fract(sin(dot(coeff, vec2(12.9898, 78.233))) * 43758.5453);
@@ -72,7 +74,6 @@ void main() {
 
       if (dist < separationDist) {
         vec2 diff = (agent_out.xy - agent.xy);
-
         separation += diff;
       }
 
@@ -88,6 +89,7 @@ void main() {
     }
     cohesion *= -1.;
     cohesion *= cohesionScale;
+    cohesion *= (audio);
 
     separation = separation;
     separation -= agent_out.zw;
@@ -95,12 +97,14 @@ void main() {
       separation = normalize(separation) * maxForce;
     }
     separation *= separationScale;
+    separation *= (audio);
 
     align -= agent_out.zw;
     if (length(align) > maxForce) {
       align = normalize(align) * maxForce;
     }
     align *= alignScale;
+    align *= audio;
 
     acceleration += cohesion + separation + align;
     agent_out.zw += acceleration;
@@ -112,9 +116,9 @@ void main() {
 
   }
 
-  if (length(agent_out.zw) > maxSpeed) {
+  if (length(agent_out.zw) > (maxSpeed)) {
     agent_out.zw = normalize(agent_out.zw);
-    agent_out.zw *= maxSpeed;
+    agent_out.zw *= (maxSpeed);
   }
 
   agent_out.x = agent_out.x + agent_out.z;

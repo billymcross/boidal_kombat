@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang='en'>
   <head>
@@ -10,5 +11,16 @@
   <script src="https://cdn.jsdelivr.net/npm/tweakpane@3.0.7/dist/tweakpane.min.js"></script>
 
   <script type='module' src='./main.js'></script>
+
+
+  <!--<input id="file-input" type="file" style="color:white"/>
+  <input type="submit">-->
+
+  <label for="path"></label><input type="text" value="Path to File" id="path">
+  <input type="button" value="update" id = "updateButton" onclick="document.getElementById('audioElement').setAttribute('src', document.getElementById('path').value)">
+  <audio controls="controls" id="audioElement">
+    <source id="audioSource" src="./Savant - ISM - 02 The Beat.mp3">
+  </audio>
+
 
 </html>
