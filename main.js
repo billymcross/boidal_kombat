@@ -26,9 +26,9 @@ const textures = [],
     agentCount = 16384
 
 const PARAMS = {
-  cohesionDist: 0.3,
-  separationDist: 0.1,
-  alignDist: 0.1,
+  cohesionDist: 0.4,
+  separationDist: 0.3,
+  alignDist: 0.4,
   cohesionScale: 1.,
   separationScale: 1.,
   alignScale: 1.,
