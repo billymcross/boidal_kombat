@@ -26,7 +26,14 @@ uniform float alignScale;
 //boolean to diffuse boids
 uniform bool diffuseBoids;
 
+//Main audio level
 uniform float audio;
+
+//Audio scales for each force
+uniform float cohesionAudio;
+uniform float separationAudio;
+uniform float alignAudio;
+
 
 // newly calculated position / velocity of agent
 out vec4 agent_out;
@@ -89,7 +96,10 @@ void main() {
     }
     cohesion *= -1.;
     cohesion *= cohesionScale;
-    cohesion *= (audio);
+    float cohesionTotalAudio;
+    if (cohesionAudio > 0.) cohesionTotalAudio = audio * cohesionAudio;
+    else cohesionTotalAudio = audio;
+    cohesion *= cohesionTotalAudio;
 
     separation = separation;
     separation -= agent_out.zw;
@@ -97,14 +107,20 @@ void main() {
       separation = normalize(separation) * maxForce;
     }
     separation *= separationScale;
-    separation *= (audio);
+    float separationTotalAudio;
+    if (separationAudio > 0.) separationTotalAudio = audio * separationAudio;
+    else separationTotalAudio = audio;
+    separation *= separationTotalAudio;
 
     align -= agent_out.zw;
     if (length(align) > maxForce) {
       align = normalize(align) * maxForce;
     }
     align *= alignScale;
-    align *= audio;
+    float alignTotalAudio;
+    if (alignAudio > 0.) alignTotalAudio = audio * alignAudio;
+    else alignTotalAudio = audio;
+    align *= alignTotalAudio;
 
     acceleration += cohesion + separation + align;
     agent_out.zw += acceleration;

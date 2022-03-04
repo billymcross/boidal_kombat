@@ -20,6 +20,9 @@ let gl,
     uCohesionScale,
     uSeparationScale,
     uAlignScale,
+    uCohesionAudio,
+    uSeparationAudio,
+    uAlignAudio,
     uDiffuse,
     uAudio,
     uAudioRender,
@@ -33,18 +36,17 @@ const textures = [],
 
 const PARAMS = {
   cohesionDist: 0.4,
-  separationDist: 0.2,
-  alignDist: 0.02,
+  separationDist: 0.1,
+  alignDist: 0.05,
   cohesionScale: 1.,
   separationScale: 1.,
   alignScale: 1.,
-  diffuseBoids: false
 };
 
 const AUDIO = {
-  cohesionAudio: 0.,
-  separationAudio: 0.,
-  alignAudio: 0.
+  cohesionAudio: 1.,
+  separationAudio: 1.,
+  alignAudio: 1.
 }
 
 window.onload = function() {
@@ -75,15 +77,6 @@ window.onload = function() {
       player.connect(analyser)
       ctxReady = true;
     }
-  }
-
-  var updateButton = document.getElementById('updateButton')
-  updateButton.onclick = function () {
-    var audioElement = document.getElementById('audioElement')
-    var source = document.getElementById('audioSource')
-    source.setAttribute('src', "./Savant - ISM - 03 Nightmare Adventures.mp3")
-    audioElement.load()
-    audioElement.play()
   }
 
 
@@ -120,22 +113,18 @@ window.onload = function() {
     min: 1.,
     max: 30.
   });
-  tab.pages[0].addInput(PARAMS, 'diffuseBoids', {
-    min: false,
-    max: true
-  })
 
   tab.pages[1].addInput(AUDIO, 'cohesionAudio', {
     min: 0.,
-    max: 1.
+    max: 10.
   })
   tab.pages[1].addInput(AUDIO, 'separationAudio', {
     min: 0.,
-    max: 1.
+    max: 10.
   })
   tab.pages[1].addInput(AUDIO, 'alignAudio', {
     min: 0.,
-    max: 1.
+    max: 10.
   })
 
   makeSimulationPhase()
@@ -259,8 +248,12 @@ function makeSimulationUniforms() {
   uAlignScale = gl.getUniformLocation(simulationProgram, 'alignScale')
   gl.uniform1f(uAlignScale, PARAMS.alignScale)
 
-  uDiffuse = gl.getUniformLocation(simulationProgram, 'diffuseBoids')
-  gl.uniform1i(uDiffuse, PARAMS.diffuseBoids)
+  uCohesionAudio = gl.getUniformLocation(simulationProgram, 'cohesionAudio')
+  gl.uniform1f(uCohesionAudio, AUDIO.cohesionAudio)
+  uSeparationAudio = gl.getUniformLocation(simulationProgram, 'separationAudio')
+  gl.uniform1f(uSeparationAudio, AUDIO.separationAudio)
+  uAlignAudio = gl.getUniformLocation(simulationProgram, 'alignAudio')
+  gl.uniform1f(uAlignAudio, AUDIO.alignAudio)
 
   uAudio = gl.getUniformLocation(simulationProgram, 'audio')
   
@@ -302,11 +295,8 @@ function makeTextures() {
   gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA32F, agentCount, 1, 0, gl.RGBA, gl.FLOAT, null )
 }
 let time = 0;
-let audioDir = 1;
-let audioSwap = 0;
 function render() {
   var source = document.getElementById('audioSource')
-
 
   time++;
   window.requestAnimationFrame( render )
@@ -335,6 +325,10 @@ function render() {
       gl.uniform1f(uAudio, audioValue)
     }
     else gl.uniform1f(uAudio, 0.)
+
+    gl.uniform1f(uCohesionAudio, AUDIO.cohesionAudio)
+    gl.uniform1f(uSeparationAudio, AUDIO.separationAudio)
+    gl.uniform1f(uAlignAudio, AUDIO.alignAudio)
   }
 
   gl.uniform1i(uDiffuse, PARAMS.diffuseBoids)

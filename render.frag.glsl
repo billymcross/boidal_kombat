@@ -10,5 +10,5 @@ uniform float time;
 out vec4 color;
 void main() {
 
-  color = vec4( abs(agent_out.z / 0.01), 0. , abs(agent_out.z / 0.01), 1. );
+  color = vec4( abs(agent_out.z / 0.01), 0. , abs(agent_out.w / 0.1), 1. );
 }
