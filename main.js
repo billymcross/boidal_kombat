@@ -320,7 +320,7 @@ function render() {
     var freqArray = new Uint8Array(analyser.fftSize);
     analyser.getByteTimeDomainData(freqArray);
     console.log(freqArray[0])
-    audioValue = parseFloat(freqArray[0] - 100.)
+    let audioValue = parseFloat(freqArray[0] - 100.)
     if(audioValue >= 0) {
       gl.uniform1f(uAudio, audioValue)
     }
